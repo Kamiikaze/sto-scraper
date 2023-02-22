@@ -6,7 +6,7 @@ dotenv.config();
 const TITLE_SELECTOR = 'table tr td:nth-child(1) > a';
 const searchUrl = 'https://s.to/account/watched/1';
 const loginUrl = 'https://s.to/login';
-const movieTitles: string[] = [];
+const movieTitles: {[title: string]: number} = {};
 
 const scrapeMovies = async (url: string) => {
     const browser = await puppeteer.launch({ headless: true });
@@ -30,6 +30,8 @@ const scrapeMovies = async (url: string) => {
 
     console.log('Logged in successfully');
 
+
+
     // Create a new page for scraping movies
     const page = await browser.newPage();
 
@@ -46,6 +48,8 @@ const scrapeMovies = async (url: string) => {
     // Navigate to the search URL
     await page.goto(url);
 
+
+
     // Recursive function to loop through all pages of the search results
     const loopPages = async () => {
         const newTitles = await page.$$eval(TITLE_SELECTOR, (titles) =>
@@ -54,8 +58,8 @@ const scrapeMovies = async (url: string) => {
 
         // Add new titles to the movie titles array
         newTitles.forEach((title) => {
-            if (title && !movieTitles.includes(title)) {
-                movieTitles.push(title);
+            if (title) {
+                movieTitles[title] = (movieTitles[title] || 0) + 1;
             }
         });
 
