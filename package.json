@@ -1,0 +1,16 @@
+{
+  "name": "sto-scraper",
+  "version": "1.0.0",
+  "scripts": {
+    "scrape": "npx ts-node scraper.ts",
+    "scrape-acc": "npx ts-node scraper-account.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "puppeteer": "^9.1.1",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/puppeteer": "^7.0.4"
+  }
+}
