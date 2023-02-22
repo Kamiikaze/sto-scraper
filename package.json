@@ -1,9 +1,9 @@
 {
-  "name": "sto-scraper",
+  "name": "scraper-for-sto-website",
+  "description": "Scraper for the sto website",
   "version": "1.0.0",
   "scripts": {
-    "scrape": "npx ts-node scraper.ts",
-    "scrape-acc": "npx ts-node scraper-account.ts"
+    "scrape": "npx ts-node src/scraper-account.ts"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
@@ -12,5 +12,11 @@
   },
   "devDependencies": {
     "@types/puppeteer": "^7.0.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "Kamiikaze",
+  "license": "MIT"
 }
