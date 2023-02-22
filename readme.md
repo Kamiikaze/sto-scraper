@@ -56,6 +56,50 @@ To use this script, you need to have [Node.js](https://nodejs.org/) and [npm](ht
    
     Note: The script will stop after scraping the first X pages, where X is the value of the firstXPages variable in the script. If you want to scrape all pages, set this variable to 0.
 
+### Example Output
+```json
+{
+   "totalMovies": 1,
+   "movieTitles": {
+      "Peripherie": {
+         "seasonCount": 1,
+         "totalEpisodesCount": 6,
+         "seasons": {
+            "1": {
+               "episodeCount": 6,
+               "episodes": {
+                  "1": {
+                     "title": "Alternative Realität",
+                     "seenAt": "21.02.2023 15:08:06 Uhr vor einem Tag"
+                  },
+                  "2": {
+                     "title": "Empathiebonus",
+                     "seenAt": "21.02.2023 16:15:57 Uhr vor einem Tag"
+                  },
+                  "3": {
+                     "title": "Haptischer Nebel",
+                     "seenAt": "21.02.2023 17:16:05 Uhr vor einem Tag"
+                  },
+                  "4": {
+                     "title": "Jackpot",
+                     "seenAt": "22.02.2023 15:36:28 Uhr vor 5 Stunden"
+                  },
+                  "5": {
+                     "title": "Was ist mit Bob?",
+                     "seenAt": "22.02.2023 16:39:28 Uhr vor 4 Stunden"
+                  },
+                  "6": {
+                     "title": "Fick dich und friss Scheiße!",
+                     "seenAt": "22.02.2023 17:38:39 Uhr vor 3 Stunden"
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+```
+
 ### License
 
 This project is licensed under the MIT License. See the [LICENSE]() file for details.
