@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
-    "puppeteer": "^9.1.1",
+    "puppeteer": "9.1.1",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/Kamiikaze/sto-scraper.git"
   },
   "author": "Kamiikaze",
   "license": "MIT"
