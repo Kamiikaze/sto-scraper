@@ -102,4 +102,4 @@ To use this script, you need to have [Node.js](https://nodejs.org/) and [npm](ht
 
 ### License
 
-This project is licensed under the MIT License. See the [LICENSE]() file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
