@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anime Episode List</title>
+    <style>
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #fileSelect {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px;
+        background-color: #f2f2f2;
+      }
+
+      .series-container {
+        width: 100%;
+        padding-bottom: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .season-container {
+        width: 900px;
+      }
+
+      .series-container:nth-child(odd) {
+        background-color: #f2f2f2;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+
+      th {
+      }
+    </style>
+  </head>
+  <body>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <div id="app">
+      <div id="fileSelect">
+        <p>Datei auswählen:</p>
+        <select v-model="selectedFile" @change="loadFile">
+          <option disabled value=""></option>
+          <option v-for="(file, index) in files" :key="index" :value="file">
+            {{ beautifyFileName(file) }}
+          </option>
+        </select>
+        <p v-if="message">{{ message }}</p>
+      </div>
+
+      <div
+        class="series-container"
+        v-for="(series, seriesName) in data.movieTitles"
+      >
+        <h2>{{ seriesName }}</h2>
+
+        <div
+          class="season-container"
+          v-for="(season, seasonIndex) in series.seasons"
+          :key="seasonIndex"
+        >
+          <h3>Season: {{seasonIndex}}</h3>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 70px">Episode</th>
+                <th>Title</th>
+                <th style="width: 260px">Gesehen</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(episode, episodeIndex) in season.episodes"
+                :key="episodeIndex"
+              >
+                <td>{{episodeIndex}}</td>
+                <td>{{episode.title}}</td>
+                <td>{{episode.seenAt.split("Uhr ").join(" - ")}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        data() {
+          return {
+            message: "",
+            files: [],
+            selectedFile: "",
+            data: {},
+          };
+        },
+        methods: {
+          async scanFiles() {
+            const data = await fetch("scan.php", {
+              method: "GET",
+            });
+            const files = await data.json();
+
+            if (files.length > 0) {
+              this.files = files;
+              this.setMessage("Dateien gefunden: " + files.length);
+            } else {
+              this.setMessage("Keine Dateien gefunden");
+            }
+          },
+          beautifyFileName(fileName) {
+            return fileName
+              .split("/")[1]
+              .replace(/_/g, " ")
+              .replace(/\.json/g, "");
+          },
+          loadFile() {
+            fetch(this.selectedFile)
+              .then((response) => response.json())
+              .then((data) => {
+                this.data = data;
+                this.setMessage("Datei geladen");
+                console.log(data);
+              })
+              .catch((error) => {
+                this.message("Datei konnte nicht geladen werden" + error);
+              });
+          },
+          setMessage(message) {
+            this.message = message;
+            setTimeout(() => {
+              this.message = "";
+            }, 3000);
+          },
+        },
+        mounted() {
+          this.scanFiles();
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
