@@ -1,10 +1,10 @@
 {
   "name": "scraper-for-sto-website",
   "description": "Scraper for the sto website",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "scripts": {
     "scrape": "start.bat",
-    "web-view": "npx ts-node src/web-view.ts",
+    "web-view": "web-view.bat",
     "dev-sto": "npx ts-node src/scraper-account.ts s.to 5 false",
     "dev-ani": "npx ts-node src/scraper-account.ts aniworld.to 5 false"
   },

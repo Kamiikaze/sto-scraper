@@ -59,13 +59,18 @@
 
     <div id="app">
       <div id="fileSelect">
-        <p>Datei auswählen:</p>
-        <select v-model="selectedFile" @change="loadFile">
-          <option disabled value=""></option>
-          <option v-for="(file, index) in files" :key="index" :value="file">
-            {{ beautifyFileName(file) }}
-          </option>
-        </select>
+        <label
+          >Datei auswählen:
+          <select v-model="selectedFile" @change="loadFile">
+            <option disabled value=""></option>
+            <option v-for="(file, index) in files" :key="index" :value="file">
+              {{ beautifyFileName(file) }}
+            </option>
+          </select>
+        </label>
+        <span v-if="data.totalMovies > 0"
+          >Anzahl an Serien: {{data.totalMovies}}</span
+        >
         <p v-if="message">{{ message }}</p>
       </div>
 
@@ -118,26 +123,26 @@
         },
         methods: {
           async scanFiles() {
-            const data = await fetch("scan.php", {
+            const data = await fetch("./data", {
               method: "GET",
             });
             const files = await data.json();
+            console.log("Found files: ", files);
 
             if (files.length > 0) {
               this.files = files;
+              this.selectedFile = files[files.length - 1];
+              this.loadFile();
               this.setMessage("Dateien gefunden: " + files.length);
             } else {
               this.setMessage("Keine Dateien gefunden");
             }
           },
           beautifyFileName(fileName) {
-            return fileName
-              .split("/")[1]
-              .replace(/_/g, " ")
-              .replace(/\.json/g, "");
+            return fileName.replace(/\.json/g, "");
           },
           loadFile() {
-            fetch(this.selectedFile)
+            fetch("./data/" + this.selectedFile)
               .then((response) => response.json())
               .then((data) => {
                 this.data = data;

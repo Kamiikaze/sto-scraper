@@ -12,6 +12,7 @@ const headless = process.argv[4] || false;
 // Set to 0 to scrape all pages
 const firstXPages = limit ? parseInt(limit) : 0;
 
+const NAV_SELECTOR = ".hosterSiteDirectNav.pagination ul";
 const ROW_SELECTOR = "table tbody tr";
 const TITLE_SELECTOR = "td:nth-child(1) > a";
 const INFO_SELECTOR = "td:nth-child(2) > a > strong";
@@ -81,10 +82,11 @@ async function doPageLogin(browser: Browser, outputDir: string) {
   // Check if the login was successful or not by checking the URL
   const url = response!.url();
   const loggedIn = url.includes("/account");
+  process.stdout.clearLine(0);
 
   // check if path has changed
   if (!loggedIn) {
-    console.log("Login failed.");
+    process.stdout.write("Login failed.");
     const captcha = await loginPage.$(".messageAlert.danger");
     if (captcha) {
       if (isHeadless) {
@@ -124,7 +126,8 @@ const scrapeMovies = async () => {
     page.on("request", (request) => {
       if (
         request.resourceType() === "stylesheet" ||
-        request.resourceType() === "font"
+        request.resourceType() === "font" ||
+        request.resourceType() === "image"
       ) {
         request.abort();
       } else {
@@ -139,6 +142,19 @@ const scrapeMovies = async () => {
   // Recursive function to loop through all pages of the search results
   const loopPages = async () => {
     const rows = await page.$$(ROW_SELECTOR);
+
+    const lastPageNum = async () => {
+      for (let i = 3; i > 0; i--) {
+        const lastPage = await page.$(
+          NAV_SELECTOR + ` li:nth-last-child(${i}) a`,
+        );
+        const lastPageNum = await lastPage?.evaluate((el) => el.textContent);
+        // check if lastPageNum is a number
+        if (lastPageNum && !isNaN(parseInt(lastPageNum))) {
+          return parseInt(lastPageNum);
+        }
+      }
+    };
 
     for (const row of rows) {
       const entry = await row.$eval(
@@ -188,17 +204,12 @@ const scrapeMovies = async () => {
       };
     }
 
-    // Find the last page number, if available
-    const lastPageLink = await page.$(".hosterSiteDirectNav li:last-child a");
-    const lastPage = lastPageLink
-      ? parseInt(await lastPageLink.evaluate((el) => el.textContent || ""))
-      : NaN;
-
     // Check if the current page is the last page
     const currentPageLink = page.url().split("/").pop();
     const currentPage = currentPageLink ? parseInt(currentPageLink) : NaN;
 
     const nextPage = currentPage + 1;
+    const lastPage = await lastPageNum();
 
     if (currentPage === lastPage) {
       console.log("Reached the last page");
@@ -216,7 +227,7 @@ const scrapeMovies = async () => {
 
     process.stdout.clearLine(0);
     process.stdout.cursorTo(0);
-    process.stdout.write("Progress: " + (currentPage + 1));
+    process.stdout.write(`Progress: ${currentPage + 1} / ${lastPage}`);
 
     if (firstXPages > 0 && currentPage === firstXPages) return;
 
