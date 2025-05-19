@@ -104,12 +104,27 @@ async function doPageLogin(browser: Browser, outputDir: string) {
   await loginPage.close();
 }
 
+async function launchWithCloudflareDoH(headless = true): Promise<Browser> {
+  return await puppeteer.launch({
+    headless,
+    args: [
+      // Enable the DoH feature under a trial group
+      '--enable-features=DnsOverHttps<DoHTrial',
+      // Activate that trial group
+      '--force-fieldtrials=DoHTrial/Group1',
+      // Konfiguriere die Cloudflare‐DoH‐Templates (POST‐Methode)
+      '--force-fieldtrial-params=DoHTrial.Group1:Fallback/true/Templates/https://cloudflare-dns.com/dns-query'
+    ]
+  });
+}
+
+
 const scrapeMovies = async () => {
   // Create output directory
   const outputDir = createOuputDir();
 
   // Launch the browser
-  const browser = await puppeteer.launch({ headless: isHeadless });
+  const browser = await launchWithCloudflareDoH();
 
   // Login to the page
   await doPageLogin(browser, outputDir);
