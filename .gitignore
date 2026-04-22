@@ -1,5 +1,18 @@
-/.env
-/node_modules/
-/.idea/
-/dist/
-/public/data/*
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+
+# Data files
+data/*.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
