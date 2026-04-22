@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watch History</title>
+
+    <!-- Vuetify 3 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@4.0.5/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <!-- Material Design Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Roboto", sans-serif;
+      }
+
+      .search-bar-sticky {
+        position: sticky;
+        top: 48px;
+        z-index: 100;
+        background: rgb(33, 33, 33);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .series-card {
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .series-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .episode-list .v-row:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0.025);
+      }
+      .episode-list .v-row:nth-child(odd) {
+        background-color: rgba(255, 255, 255, 0.01);
+      }
+
+      .episode-list .v-row {
+        transition: background-color 0.15s;
+      }
+
+      .episode-list .v-row:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .stats-chip {
+        font-weight: 500;
+      }
+
+      .no-data-container {
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <v-app>
+        <v-app-bar color="primary" density="compact">
+          <template v-slot:prepend>
+            <v-icon>mdi-movie-open</v-icon>
+          </template>
+
+          <v-app-bar-title>
+            Watch History
+            <small>
+              |
+              <a
+                class="text-black"
+                href="https://github.com/Kamiikaze/sto-scraper"
+                >Kamiikaze/sto-scraper</a
+              ></small
+            >
+          </v-app-bar-title>
+
+          <template v-slot:append>
+            <v-btn icon @click="toggleTheme">
+              <v-icon
+                >{{ isDark ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
+                }}</v-icon
+              >
+            </v-btn>
+          </template>
+        </v-app-bar>
+
+        <v-main>
+          <!-- Sticky Bar -->
+          <div class="search-bar-sticky">
+            <v-container>
+              <v-row align="center">
+                <!-- List Type Toggle -->
+                <v-col cols="3" class="d-flex align-center justify-start">
+                  <v-btn-toggle
+                    v-model="listType"
+                    color="primary"
+                    density="compact"
+                    mandatory
+                    border
+                  >
+                    <v-btn value="serie"> Serien </v-btn>
+
+                    <v-btn value="anime"> Animes </v-btn>
+                  </v-btn-toggle>
+                </v-col>
+
+                <!-- Stats Row -->
+                <v-col
+                  v-if="filteredSeries.length > 0"
+                  cols="9"
+                  class="d-flex align-center justify-end"
+                >
+                  <v-chip
+                    class="stats-chip mr-2"
+                    color="secondary"
+                    variant="flat"
+                  >
+                    <v-icon start>mdi-web</v-icon>
+                    {{ currentData.site || 'Unknown' }}
+                  </v-chip>
+                  <v-chip
+                    class="stats-chip mr-2"
+                    color="primary"
+                    variant="flat"
+                  >
+                    <v-icon start>mdi-television-classic</v-icon>
+                    {{ currentData.totalMovies }} Shows
+                  </v-chip>
+                  <v-chip
+                    class="stats-chip mr-2"
+                    color="warning"
+                    variant="flat"
+                  >
+                    <v-icon start>mdi-television-classic</v-icon>
+                    {{ currentData.totalEpisodesCount }} Episoden
+                  </v-chip>
+                  <v-chip
+                    class="stats-chip"
+                    color="info"
+                    variant="flat"
+                    v-if="currentData.scrapedAt"
+                  >
+                    <v-icon start>mdi-clock</v-icon>
+                    {{ formatDate(currentData.scrapedAt) }}
+                  </v-chip>
+                </v-col>
+              </v-row>
+            </v-container>
+          </div>
+
+          <!-- Content Area -->
+          <v-container class="py-6">
+            <!-- No data state -->
+            <transition name="fade">
+              <div v-if="!filteredSeries" class="no-data-container">
+                <v-card class="text-center pa-8" elevation="2" max-width="500">
+                  <v-icon size="80" color="primary" class="mb-4"
+                    >mdi-alert-circle</v-icon
+                  >
+                  <h2 class="text-h5 mb-4">Keine Daten gefunden</h2>
+                  <p class="text-body-1 mb-4">
+                    Überprüfe, ob im <code>./data</code> Ordner eine
+                    <code>{seite}_latest.json</code> Datei vorhanden ist.
+                  </p>
+                </v-card>
+              </div>
+            </transition>
+
+            <!-- Series Grid -->
+            <transition name="fade">
+              <v-row v-if="!loading && filteredSeries.length > 0">
+                <v-col
+                  v-for="(series, title) in filteredSeries"
+                  :key="title"
+                  cols="12"
+                >
+                  <v-card class="series-card" elevation="3">
+                    <v-card-title class="text-h5 my-2 d-flex align-center">
+                      <v-icon class="mr-2" color="primary"
+                        >mdi-movie-roll</v-icon
+                      >
+                      {{ series.title }}
+                      <v-spacer></v-spacer>
+                      <v-chip size="small" color="primary" variant="outlined">
+                        {{ series.seasonCount }} Staffel{{ series.seasonCount
+                        !== 1 ? 'n' : '' }}
+                      </v-chip>
+                      <v-chip
+                        size="small"
+                        color="secondary"
+                        variant="outlined"
+                        class="ml-2"
+                      >
+                        {{ series.totalEpisodesCount }} Episode{{
+                        series.episodeCount !== 1 ? 'n' : '' }}
+                      </v-chip>
+                    </v-card-title>
+
+                    <v-divider></v-divider>
+
+                    <!-- Seasons -->
+                    <v-container>
+                      <div
+                        class="episode-list mb-6"
+                        v-for="(season, seasonNum) in series.seasons"
+                        :key="seasonNum"
+                      >
+                        <h2 class="mb-2">
+                          {{ seasonNum === 0 ? "Film / Specials" : `Staffel
+                          ${seasonNum}` }}
+                        </h2>
+                        <v-row
+                          class="mt-0 py-2 px-2"
+                          v-for="(episode, episodeNum) in Object.entries(season.episodes)"
+                          :key="episodeNum"
+                        >
+                          <v-col cols="1"> {{ episodeNum }} </v-col>
+                          <v-col cols="8"> {{ episode[1].title }} </v-col>
+                          <v-col cols="3" align="end">
+                            {{ this.formatDate(episode[1].seenAt) }}
+                          </v-col>
+                        </v-row>
+                      </div>
+                    </v-container>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </transition>
+
+            <!-- Loading Data -->
+            <transition name="fade">
+              <div v-if="loading" class="d-flex justify-center align-center">
+                <v-progress-circular
+                  indeterminate
+                  color="primary"
+                ></v-progress-circular>
+                <span class="ml-4">Daten werden geladen...</span>
+              </div>
+            </transition>
+          </v-container>
+        </v-main>
+      </v-app>
+    </div>
+
+    <!-- Vue 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.5.32/dist/vue.global.prod.js"></script>
+    <!-- Vuetify 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@4.0.5/dist/vuetify.min.js"></script>
+
+    <script>
+      const { createApp } = Vue;
+      const { createVuetify } = Vuetify;
+
+      const vuetify = createVuetify({
+        theme: {
+          defaultTheme: "dark",
+          themes: {
+            dark: {
+              colors: {
+                primary: "#BB86FC",
+                secondary: "#03DAC6",
+                accent: "#CF6679",
+                error: "#CF6679",
+                info: "#2196F3",
+                success: "#4CAF50",
+                warning: "#FB8C00",
+              },
+            },
+            light: {
+              colors: {
+                primary: "#6200EE",
+                secondary: "#03DAC6",
+                accent: "#018786",
+                error: "#B00020",
+                info: "#2196F3",
+                success: "#4CAF50",
+                warning: "#FB8C00",
+              },
+            },
+          },
+        },
+      });
+
+      createApp({
+        data() {
+          return {
+            animeList: [],
+            serieList: [],
+            listType: "serie",
+            isDark: true,
+            loading: true,
+          };
+        },
+        computed: {
+          currentData() {
+            return this.listType === "serie" ? this.serieList : this.animeList;
+          },
+
+          filteredSeries() {
+            if (!this.currentData?.movieTitles) return [];
+
+            return Object.entries(this.currentData.movieTitles).map(
+              ([title, data]) => ({
+                ...data,
+                title,
+              }),
+            );
+          },
+        },
+        methods: {
+          async fetchData(url) {
+            try {
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return await response.json();
+            } catch (error) {
+              console.error("Error fetching data:", error);
+              return null;
+            }
+          },
+          formatDate(dateString) {
+            return new Date(dateString).toLocaleString("de-DE", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          },
+          toggleTheme() {
+            this.isDark = !this.isDark;
+            this.$vuetify.theme.global.name = this.isDark ? "dark" : "light";
+          },
+        },
+        async mounted() {
+          this.loading = true;
+
+          await this.fetchData("./aniworld.to_latest.json").then(
+            (data) => (this.animeList = data),
+          );
+          await this.fetchData("./s.to_latest.json").then(
+            (data) => (this.serieList = data),
+          );
+
+          this.loading = false;
+        },
+      })
+        .use(vuetify)
+        .mount("#app");
+    </script>
+  </body>
+</html>

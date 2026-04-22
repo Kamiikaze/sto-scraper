@@ -1,21 +1,23 @@
 {
-  "name": "scraper-for-sto-website",
-  "description": "Scraper for the sto website",
-  "version": "1.1.1",
+  "name": "sto-scraper",
+  "description": "Modernized scraper for s.to and aniworld.to with separate site support",
+  "version": "2.0.0",
   "scripts": {
-    "scrape": "start.bat",
-    "web-view": "web-view.bat",
-    "dev-sto": "npx ts-node src/scraper-account.ts s.to 5 false",
-    "dev-ani": "npx ts-node src/scraper-account.ts aniworld.to 5 false"
+    "webviewer": "http-server -p 8080 data -o",
+    "scrape:sto": "npx ts-node src/scrapers/scraper-sto.ts",
+    "scrape:aniworld": "npx ts-node src/scrapers/scraper-aniworld.ts",
+    "scrape:sto:limit": "npx ts-node src/scrapers/scraper-sto.ts 5",
+    "scrape:aniworld:limit": "npx ts-node src/scrapers/scraper-aniworld.ts 5"
   },
   "dependencies": {
-    "dotenv": "16.0.3",
-    "express": "^4.18.2",
-    "puppeteer": "21.7.0",
-    "ts-node": "10.9.1"
+    "dotenv": "17.4.2",
+    "puppeteer": "24.42.0",
+    "ts-node": "10.9.2"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21"
+    "@types/node": "25.6.0",
+    "typescript": "6.0.3",
+    "http-server": "14.1.1"
   },
   "repository": {
     "type": "git",
