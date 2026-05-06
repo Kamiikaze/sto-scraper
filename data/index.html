@@ -27,18 +27,10 @@
         position: sticky;
         top: 48px;
         z-index: 100;
-        background: rgb(33, 33, 33);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      }
-
-      .series-card {
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
-      }
-
-      .series-card:hover {
-        transform: translateY(-2px);
+        /*noinspection CssUnresolvedCustomProperty*/
+        background: rgb(var(--v-theme-surface));
+        border-bottom: 1px solid
+          rgba(var(--v-border-color), var(--v-border-opacity));
       }
 
       .episode-list .v-row:nth-child(even) {
@@ -65,6 +57,39 @@
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+
+      /* Panel title: truncate long titles, keep chips visible */
+      .panel-title-inner {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .panel-title-text {
+        min-width: 0;
+        flex: 1 1 200px;
+        overflow: hidden;
+        text-wrap-style: balance;
+        line-height: 1.4;
+      }
+
+      .panel-title-chips {
+        flex-shrink: 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        /* keep chips away from expansion arrow */
+        margin-left: 8px;
+        margin-right: 8px;
+      }
+      @media (max-width: 600px) {
+        .panel-title-chips {
+          display: none;
+        }
       }
     </style>
   </head>
@@ -103,52 +128,60 @@
           <!-- Sticky Bar -->
           <div class="search-bar-sticky">
             <v-container>
-              <v-row align="center">
+              <v-row align="center" no-gutters class="gap-2 py-1">
                 <!-- List Type Toggle -->
-                <v-col cols="3" class="d-flex align-center justify-start">
+                <v-col cols="auto" class="d-flex align-center mr-2">
                   <v-btn-toggle
                     v-model="listType"
                     color="primary"
-                    density="compact"
+                    density="comfortable"
                     mandatory
                     border
                   >
-                    <v-btn value="serie"> Serien </v-btn>
-
-                    <v-btn value="anime"> Animes </v-btn>
+                    <v-btn value="serie">Serien</v-btn>
+                    <v-btn value="anime">Animes</v-btn>
                   </v-btn-toggle>
                 </v-col>
 
-                <!-- Stats Row -->
-                <v-col
-                  v-if="filteredSeries.length > 0"
-                  cols="9"
-                  class="d-flex align-center justify-end"
-                >
-                  <v-chip
-                    class="stats-chip mr-2"
-                    color="secondary"
-                    variant="flat"
-                  >
+                <!-- Search Field -->
+                <v-col class="d-flex align-center">
+                  <v-text-field
+                    v-model="searchQuery"
+                    prepend-inner-icon="mdi-magnify"
+                    placeholder="Titel suchen…"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    clearable
+                    class="w-100"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+
+              <v-row
+                class="d-flex justify-center align-center mt-3 ga-2"
+                v-if="filteredSeries.length > 0"
+              >
+                <!-- Stats Chips (hidden below lg) -->
+                <v-col cols="auto">
+                  <v-chip class="stats-chip" color="secondary" variant="flat">
                     <v-icon start>mdi-web</v-icon>
                     {{ currentData.site || 'Unknown' }}
                   </v-chip>
-                  <v-chip
-                    class="stats-chip mr-2"
-                    color="primary"
-                    variant="flat"
-                  >
+                </v-col>
+                <v-col cols="auto">
+                  <v-chip class="stats-chip" color="primary" variant="flat">
                     <v-icon start>mdi-television-classic</v-icon>
                     {{ currentData.totalMovies }} Shows
                   </v-chip>
-                  <v-chip
-                    class="stats-chip mr-2"
-                    color="warning"
-                    variant="flat"
-                  >
+                </v-col>
+                <v-col cols="auto">
+                  <v-chip class="stats-chip" color="warning" variant="flat">
                     <v-icon start>mdi-television-classic</v-icon>
                     {{ currentData.totalEpisodesCount }} Episoden
                   </v-chip>
+                </v-col>
+                <v-col cols="auto">
                   <v-chip
                     class="stats-chip"
                     color="info"
@@ -166,99 +199,97 @@
           <!-- Content Area -->
           <v-container class="py-6">
             <!-- No data state -->
-            <transition name="fade">
-              <div v-if="!filteredSeries" class="no-data-container">
-                <v-card class="text-center pa-8" elevation="2" max-width="500">
-                  <v-icon size="80" color="primary" class="mb-4"
-                    >mdi-alert-circle</v-icon
-                  >
-                  <h2 class="text-h5 mb-4">Keine Daten gefunden</h2>
-                  <p class="text-body-1 mb-4">
-                    Überprüfe, ob im <code>./data</code> Ordner eine
-                    <code>{seite}_latest.json</code> Datei vorhanden ist.
-                  </p>
-                </v-card>
-              </div>
-            </transition>
-
-            <!-- Series Grid -->
-            <transition name="fade">
-              <v-row v-if="!loading && filteredSeries.length > 0">
-                <v-col
-                  v-for="(series, title) in filteredSeries"
-                  :key="title"
-                  cols="12"
+            <div
+              v-if="!loading && filteredSeries.length === 0"
+              class="no-data-container"
+            >
+              <v-card class="text-center pa-8" elevation="2" max-width="500">
+                <v-icon size="80" color="primary" class="mb-4"
+                  >mdi-alert-circle</v-icon
                 >
-                  <v-card class="series-card" elevation="3">
-                    <v-card-title class="text-h5 my-2 d-flex align-center">
-                      <v-icon class="mr-2" color="primary"
-                        >mdi-movie-roll</v-icon
-                      >
-                      {{ series.title }}
-                      <v-spacer></v-spacer>
+                <h2 class="text-h5 mb-4">
+                  {{ searchQuery ? 'Keine Treffer' : 'Keine Daten gefunden' }}
+                </h2>
+                <p class="text-body-1 mb-4" v-if="!searchQuery">
+                  Überprüfe, ob im <code>./data</code> Ordner eine
+                  <code>{seite}_latest.json</code> Datei vorhanden ist.
+                </p>
+                <p class="text-body-1 mb-4" v-else>
+                  Kein Titel enthält „{{ searchQuery }}".
+                </p>
+              </v-card>
+            </div>
+
+            <!-- Series List -->
+            <v-expansion-panels v-if="!loading && filteredSeries.length > 0">
+              <v-expansion-panel
+                v-for="series in filteredSeries"
+                :key="series.title"
+                elevation="3"
+              >
+                <v-expansion-panel-title>
+                  <div class="panel-title-inner">
+                    <v-icon class="mr-1 flex-shrink-0" color="primary"
+                      >mdi-movie-roll</v-icon
+                    >
+                    <span class="panel-title-text text-h6"
+                      >{{ series.title }}</span
+                    >
+                    <div class="panel-title-chips">
                       <v-chip size="small" color="primary" variant="outlined">
                         {{ series.seasonCount }} Staffel{{ series.seasonCount
                         !== 1 ? 'n' : '' }}
                       </v-chip>
-                      <v-chip
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                        class="ml-2"
-                      >
+                      <v-chip size="small" color="secondary" variant="outlined">
                         {{ series.totalEpisodesCount }} Episode{{
-                        series.episodeCount !== 1 ? 'n' : '' }}
+                        series.totalEpisodesCount !== 1 ? 'n' : '' }}
                       </v-chip>
-                    </v-card-title>
+                    </div>
+                  </div>
+                </v-expansion-panel-title>
 
-                    <v-divider></v-divider>
-
-                    <!-- Seasons -->
-                    <v-container>
-                      <div
-                        class="episode-list mb-6"
-                        v-for="(season, seasonNum) in series.seasons"
-                        :key="seasonNum"
+                <v-expansion-panel-text>
+                  <v-divider class="mb-4"></v-divider>
+                  <div
+                    class="episode-list mb-6"
+                    v-for="season in series.seasons"
+                    :key="season.num"
+                  >
+                    <h2 class="mb-2">
+                      {{ season.num === 0 ? "Film / Specials" : `Staffel
+                      ${season.num}` }}
+                    </h2>
+                    <v-row
+                      class="mt-0 py-2 px-2"
+                      v-for="episode in season.episodes"
+                      :key="episode.num"
+                    >
+                      <v-col cols="2" sm="1">{{ episode.num }}</v-col>
+                      <v-col cols="10" sm="8">{{ episode.title }}</v-col>
+                      <v-col cols="3" class="d-none d-sm-flex justify-end"
+                        >{{ episode.seenAt }}</v-col
                       >
-                        <h2 class="mb-2">
-                          {{ seasonNum === 0 ? "Film / Specials" : `Staffel
-                          ${seasonNum}` }}
-                        </h2>
-                        <v-row
-                          class="mt-0 py-2 px-2"
-                          v-for="(episode, episodeNum) in Object.entries(season.episodes)"
-                          :key="episodeNum"
-                        >
-                          <v-col cols="1"> {{ episodeNum }} </v-col>
-                          <v-col cols="8"> {{ episode[1].title }} </v-col>
-                          <v-col cols="3" align="end">
-                            {{ this.formatDate(episode[1].seenAt) }}
-                          </v-col>
-                        </v-row>
-                      </div>
-                    </v-container>
-                  </v-card>
-                </v-col>
-              </v-row>
-            </transition>
+                    </v-row>
+                  </div>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
 
-            <!-- Loading Data -->
-            <transition name="fade">
-              <div v-if="loading" class="d-flex justify-center align-center">
-                <v-progress-circular
-                  indeterminate
-                  color="primary"
-                ></v-progress-circular>
-                <span class="ml-4">Daten werden geladen...</span>
-              </div>
-            </transition>
+            <!-- Loading -->
+            <div v-if="loading" class="d-flex justify-center align-center">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              ></v-progress-circular>
+              <span class="ml-4">Daten werden geladen...</span>
+            </div>
           </v-container>
         </v-main>
       </v-app>
     </div>
 
     <!-- Vue 3 -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.5.32/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.5.32/dist/vue.global.js"></script>
     <!-- Vuetify 3 -->
     <script src="https://cdn.jsdelivr.net/npm/vuetify@4.0.5/dist/vuetify.min.js"></script>
 
@@ -299,27 +330,30 @@
       createApp({
         data() {
           return {
-            animeList: [],
-            serieList: [],
+            animeList: null,
+            serieList: null,
+            processedAnimeList: [],
+            processedSerieList: [],
             listType: "serie",
+            searchQuery: "",
             isDark: true,
             loading: true,
           };
         },
         computed: {
           currentData() {
-            return this.listType === "serie" ? this.serieList : this.animeList;
+            return this.listType === "serie"
+              ? this.serieList || {}
+              : this.animeList || {};
           },
-
           filteredSeries() {
-            if (!this.currentData?.movieTitles) return [];
-
-            return Object.entries(this.currentData.movieTitles).map(
-              ([title, data]) => ({
-                ...data,
-                title,
-              }),
-            );
+            const list =
+              this.listType === "serie"
+                ? this.processedSerieList
+                : this.processedAnimeList;
+            if (!this.searchQuery?.trim()) return list;
+            const q = this.searchQuery.toLowerCase();
+            return list.filter((s) => s.title.toLowerCase().includes(q));
           },
         },
         methods: {
@@ -344,6 +378,24 @@
               minute: "2-digit",
             });
           },
+          processData(raw) {
+            if (!raw?.movieTitles) return [];
+            return Object.entries(raw.movieTitles).map(([title, data]) => ({
+              title,
+              seasonCount: data.seasonCount,
+              totalEpisodesCount: data.totalEpisodesCount,
+              seasons: Object.entries(data.seasons).map(([sNum, season]) => ({
+                num: parseInt(sNum),
+                episodes: Object.entries(season.episodes).map(
+                  ([epNum, ep]) => ({
+                    num: epNum,
+                    title: ep.title,
+                    seenAt: this.formatDate(ep.seenAt),
+                  }),
+                ),
+              })),
+            }));
+          },
           toggleTheme() {
             this.isDark = !this.isDark;
             this.$vuetify.theme.global.name = this.isDark ? "dark" : "light";
@@ -352,12 +404,15 @@
         async mounted() {
           this.loading = true;
 
-          await this.fetchData("./aniworld.to_latest.json").then(
-            (data) => (this.animeList = data),
-          );
-          await this.fetchData("./s.to_latest.json").then(
-            (data) => (this.serieList = data),
-          );
+          const [anime, serie] = await Promise.all([
+            this.fetchData("./aniworld.to_latest.json"),
+            this.fetchData("./s.to_latest.json"),
+          ]);
+
+          this.animeList = anime;
+          this.serieList = serie;
+          this.processedAnimeList = this.processData(anime);
+          this.processedSerieList = this.processData(serie);
 
           this.loading = false;
         },
