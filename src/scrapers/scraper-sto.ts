@@ -49,7 +49,7 @@ export class StoScraper {
       const totalMovies = Object.keys(this.movieTitles).length;
       console.log(`\nFound ${totalMovies} unique series on s.to`);
 
-      this.utils.saveToFile(this.movieTitles, "s.to");
+      await this.utils.saveToFile(this.movieTitles, "s.to");
     } finally {
       await browser.close();
     }
@@ -73,7 +73,6 @@ export class StoScraper {
       cursor = nextCursor;
       currentPage++;
       await page.goto(this.config.searchUrl + `?cursor=` + cursor);
-      await new Promise((r) => setTimeout(r, 100));
     }
   }
 
@@ -83,17 +82,27 @@ export class StoScraper {
     cursor: string | null,
   ): Promise<{ hasMorePages: boolean; nextCursor: string | null }> {
     try {
-      const cards = await page.$$(this.config.selectors.card);
+      const sel = this.config.selectors;
+      const cardData = await page.$$eval(
+        sel.card,
+        (cards, s) =>
+          cards.map((c) => ({
+            title: c.querySelector(s.title)?.textContent?.trim() ?? "",
+            info: (c.querySelector(s.info) as HTMLElement)?.innerText?.trim() ?? "",
+            date: c.querySelector(s.time)?.textContent?.trim() ?? "",
+          })),
+        sel,
+      );
 
-      if (cards.length === 0) {
+      if (cardData.length === 0) {
         return {
           hasMorePages: false,
           nextCursor: null,
         };
       }
 
-      for (const card of cards) {
-        await this.scrapeCard(card);
+      for (const data of cardData) {
+        this.processCard(data);
       }
 
       process.stdout.clearLine(0);
@@ -123,53 +132,37 @@ export class StoScraper {
     }
   }
 
-  private async scrapeCard(row: any): Promise<void> {
+  private processCard(data: { title: string; info: string; date: string }): void {
     try {
-      const title = await row.$eval(
-        this.config.selectors.title,
-        (el: Element) => el.textContent?.trim() || "",
-      );
-
-      const info = await row.$eval(
-        this.config.selectors.info,
-        (el: HTMLElement) => el.innerText?.trim() || "",
-      );
-
-      const [seasonEpisode, episodeTitle] = info.split(" – ");
+      const [seasonEpisode, episodeTitle] = data.info.split(" – ");
       const [seasonNumber, episodeNumber] = seasonEpisode
         .split(" ")
         .map((v: string) => parseInt(v.substring(1)) || 0);
 
-      const date = await row.$eval(
-        this.config.selectors.time,
-        (el: Element) => el.textContent?.trim() || "",
-      );
-
-      // Add to data structure
-      if (!this.movieTitles[title]) {
-        this.movieTitles[title] = {
+      if (!this.movieTitles[data.title]) {
+        this.movieTitles[data.title] = {
           seasonCount: 0,
           totalEpisodesCount: 0,
           seasons: {},
         };
       }
 
-      if (!this.movieTitles[title].seasons[seasonNumber]) {
-        this.movieTitles[title].seasons[seasonNumber] = {
+      if (!this.movieTitles[data.title].seasons[seasonNumber]) {
+        this.movieTitles[data.title].seasons[seasonNumber] = {
           episodeCount: 0,
           episodes: {},
         };
-        this.movieTitles[title].seasonCount++;
+        this.movieTitles[data.title].seasonCount++;
       }
 
-      this.movieTitles[title].totalEpisodesCount++;
-      this.movieTitles[title].seasons[seasonNumber].episodeCount++;
-      this.movieTitles[title].seasons[seasonNumber].episodes[episodeNumber] = {
+      this.movieTitles[data.title].totalEpisodesCount++;
+      this.movieTitles[data.title].seasons[seasonNumber].episodeCount++;
+      this.movieTitles[data.title].seasons[seasonNumber].episodes[episodeNumber] = {
         title: episodeTitle,
-        seenAt: this.formatSeenDate(date),
+        seenAt: this.formatSeenDate(data.date),
       };
     } catch (error) {
-      console.error("Error scraping row:", error);
+      console.error("Error processing card:", error);
     }
   }
 }

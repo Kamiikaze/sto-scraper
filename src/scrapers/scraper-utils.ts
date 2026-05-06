@@ -107,7 +107,7 @@ export class ScraperUtils {
       }, 0);
   }
 
-  saveToFile(movieTitles: { [p: string]: SeriesData }, site: string): void {
+  async saveToFile(movieTitles: { [p: string]: SeriesData }, site: string): Promise<void> {
     const dataDir = "./data/";
     const data: ScraperOutput = {} as ScraperOutput;
 
@@ -144,11 +144,10 @@ export class ScraperUtils {
 
     const json = JSON.stringify(data, null, 2);
 
-    // Save versioned file
-    fs.writeFileSync(versionedPath, json);
-
-    // Save/update latest file
-    fs.writeFileSync(latestPath, json);
+    await Promise.all([
+      fs.promises.writeFile(versionedPath, json),
+      fs.promises.writeFile(latestPath, json),
+    ]);
 
     console.log(`\nData saved to ${versionedPath}`);
     console.log(`Latest updated: ${latestPath}`);

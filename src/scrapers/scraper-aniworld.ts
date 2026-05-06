@@ -50,7 +50,7 @@ export class AniworldScraper {
       const totalMovies = Object.keys(this.movieTitles).length;
       console.log(`\nFound ${totalMovies} unique series on aniworld.to`);
 
-      this.utils.saveToFile(this.movieTitles, "aniworld.to");
+      await this.utils.saveToFile(this.movieTitles, "aniworld.to");
     } finally {
       await browser.close();
     }
@@ -73,7 +73,6 @@ export class AniworldScraper {
 
       currentPage++;
       await page.goto(this.config.searchUrl + currentPage);
-      await new Promise((r) => setTimeout(r, 100));
     }
   }
 
@@ -83,14 +82,24 @@ export class AniworldScraper {
     lastPageNum: number | null,
   ): Promise<boolean> {
     try {
-      const rows = await page.$$(this.config.selectors.row);
+      const sel = this.config.selectors;
+      const rowData = await page.$$eval(
+        sel.row,
+        (rows, s) =>
+          rows.map((r) => ({
+            entry: r.querySelector(s.title)?.textContent?.trim() ?? "",
+            info: r.querySelector(s.info)?.textContent?.trim() ?? "",
+            date: r.querySelector(s.time)?.textContent?.trim() ?? "",
+          })),
+        sel,
+      );
 
-      if (rows.length === 0) {
+      if (rowData.length === 0) {
         return false;
       }
 
-      for (const row of rows) {
-        await this.scrapeRow(row);
+      for (const data of rowData) {
+        this.processRow(data);
       }
 
       process.stdout.clearLine(0);
@@ -104,30 +113,15 @@ export class AniworldScraper {
     }
   }
 
-  private async scrapeRow(row: any): Promise<void> {
+  private processRow(data: { entry: string; info: string; date: string }): void {
     try {
-      const entry = await row.$eval(
-        this.config.selectors.title,
-        (el: Element) => el.textContent?.trim() || "",
-      );
-
-      const title = entry.split(" - ")[0];
-      const [season, episode] = entry
+      const title = data.entry.split(" - ")[0];
+      const [season, episode] = data.entry
         .split(" - ")[1]
         .split(" ")
         .map((v: string) => parseInt(v.substring(1)));
 
       const seasonNumber = season > 0 ? season.toString() : "Movie";
-
-      const info = await row.$eval(
-        this.config.selectors.info,
-        (el: Element) => el.textContent?.trim() || "",
-      );
-
-      const date = await row.$eval(
-        this.config.selectors.time,
-        (el: Element) => el.textContent?.trim() || "",
-      );
 
       if (!this.movieTitles[title]) {
         this.movieTitles[title] = {
@@ -150,11 +144,11 @@ export class AniworldScraper {
       this.movieTitles[title].seasons[seasonNumber].episodes[
         episode.toString()
       ] = {
-        title: info,
-        seenAt: this.formatSeenDate(date),
+        title: data.info,
+        seenAt: this.formatSeenDate(data.date),
       };
     } catch (error) {
-      console.error("Error scraping row:", error);
+      console.error("Error processing row:", error);
     }
   }
 

@@ -12,6 +12,7 @@ data/*.json
 .vscode/
 *.swp
 *.swo
+.ai/
 
 # OS
 .DS_Store
